@@ -7,8 +7,9 @@
 
 __attribute__((constructor)) int main(int argc, char **argv, char **envp)
 {
+	setgid(0);
 	setuid(0);
-    if ((chdir("/")) < 0) {
+	if((chdir("/")) < 0) {
 		exit(EXIT_FAILURE);
 	}
 	@autoreleasepool {
@@ -19,8 +20,8 @@ __attribute__((constructor)) int main(int argc, char **argv, char **envp)
 		NSString* port = [PrefsCheck[@"ProgramArguments"]?:@[] lastObject];
 		PrefsCheck[@"ProgramArguments"] = @[@"/usr/local/bin/dropbear",@"-F",@"-R",@"-p",(port&&[port length]<=4)?@"127.0.0.1:22":@"22"];
 		[PrefsCheck writeToFile:@DropBearDaemomPath atomically:YES];
-		chown(@DropBearDaemomPath.UTF8String, 0, 0);
-		chmod(@DropBearDaemomPath.UTF8String, 0755);
+		chown(DropBearDaemomPath, 0, 0);
+		chmod(DropBearDaemomPath, 0755);
 		system("launchctl unload "DropBearDaemomPath);
 		system("launchctl load "DropBearDaemomPath);
 		notify_post("com.julioverne.dropbearswitch");

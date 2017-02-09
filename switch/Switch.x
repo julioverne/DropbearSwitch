@@ -1,14 +1,17 @@
-#import "FSSwitchDataSource.h"
-#import "FSSwitchPanel.h"
+#import <Flipswitch/Flipswitch.h>
 #import <notify.h>
 
 #define DropBearDaemomPath "/Library/LaunchDaemons/dropbear.plist"
 
+@interface NSUserDefaults ()
+- (id)objectForKey:(NSString *)key inDomain:(NSString *)domain;
+- (void)setObject:(id)value forKey:(NSString *)key inDomain:(NSString *)domain;
+@end
 @interface dropbearSwitch : NSObject <FSSwitchDataSource>
 @property(nonatomic,assign) BOOL enabled;
 @end
 
-dropbearSwitch *dropbearSwitchShared = nil;
+static __strong dropbearSwitch *dropbearSwitchShared = nil;
 static BOOL isDropBearEnabled()
 {
 	@autoreleasepool {
@@ -26,6 +29,7 @@ static void changedDropbearSwitch(CFNotificationCenterRef center, void *observer
 		if (dropbearSwitchShared != nil) {
 			dropbearSwitchShared.enabled = isDropBearEnabled();
 			[[FSSwitchPanel sharedPanel] stateDidChangeForSwitchIdentifier:@"com.julioverne.dropbearswitch"];
+			[[NSUserDefaults standardUserDefaults] setObject:@(dropbearSwitchShared.enabled) forKey:@"enabled" inDomain:@"com.julioverne.dropbearswitch"];
 		}
 	}
 }
@@ -37,7 +41,12 @@ static void changedDropbearSwitch(CFNotificationCenterRef center, void *observer
 	self = [super init];
 	dropbearSwitchShared = self;
 	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, changedDropbearSwitch, CFSTR("com.julioverne.dropbearswitch"), NULL, CFNotificationSuspensionBehaviorCoalesce);
-	self.enabled = isDropBearEnabled();
+	enabled = isDropBearEnabled();
+	@autoreleasepool {
+		if(enabled != [[[NSUserDefaults standardUserDefaults] objectForKey:@"enabled" inDomain:@"com.julioverne.dropbearswitch"]?:@NO boolValue]) {
+			[self applyState:enabled forSwitchIdentifier:nil];
+		}
+	}
 	return self;
 }
 - (FSSwitchState)stateForSwitchIdentifier:(NSString *)switchIdentifier
@@ -46,6 +55,6 @@ static void changedDropbearSwitch(CFNotificationCenterRef center, void *observer
 }
 - (void)applyState:(FSSwitchState)newState forSwitchIdentifier:(NSString *)switchIdentifier
 {
-	system("exec /usr/bin/toggleDropBearSwitch");
+	system("exec /usr/bin/toogleDropBearSwitch");
 }
 @end
